@@ -176,8 +176,13 @@ export async function fetchStructuredCommodityReport(): Promise<CommodityReportD
     });
 
     return newData;
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to fetch report", e);
+    
+    if (e.message?.includes("429") || e.toString().includes("quota")) {
+      throw new Error("API 사용량이 초과되었습니다. 잠시 후 다시 시도하거나 내일 다시 확인해주세요.");
+    }
+    
     throw new Error("데이터를 불러오는 중 오류가 발생했습니다.");
   }
 }
