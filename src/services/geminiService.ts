@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export interface NewsItem {
   title: string;
@@ -14,7 +14,7 @@ export interface PriceData {
   current: string;
   change: string;
   changePercent: string;
-  history: { day: string; value: number }[];
+  history?: { day: string; value: number }[];
 }
 
 export interface CommodityReportData {
@@ -29,7 +29,7 @@ export interface CommodityReportData {
   };
 }
 
-export async function fetchStructuredCommodityReport(): Promise<CommodityReportData> {
+async function fetchFromGemini(): Promise<CommodityReportData> {
   const model = "gemini-3-flash-preview";
   
   const prompt = `
@@ -149,10 +149,35 @@ export async function fetchStructuredCommodityReport(): Promise<CommodityReportD
     },
   });
 
+  return JSON.parse(response.text);
+}
+
+export async function fetchStructuredCommodityReport(): Promise<CommodityReportData> {
   try {
-    return JSON.parse(response.text);
+    // 1. Check server cache first
+    const cacheResponse = await fetch('/api/report');
+    if (cacheResponse.ok) {
+      const cachedData = await cacheResponse.json();
+      if (cachedData) {
+        console.log("Using cached data from server");
+        return cachedData;
+      }
+    }
+
+    // 2. If no cache, fetch from Gemini (Client-side)
+    console.log("No cache found, fetching from Gemini...");
+    const newData = await fetchFromGemini();
+
+    // 3. Save to server cache for others
+    await fetch('/api/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newData)
+    });
+
+    return newData;
   } catch (e) {
-    console.error("Failed to parse Gemini response", e);
-    throw new Error("데이터 형식이 올바르지 않습니다.");
+    console.error("Failed to fetch report", e);
+    throw new Error("데이터를 불러오는 중 오류가 발생했습니다.");
   }
 }
