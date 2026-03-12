@@ -1,7 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-
 export interface NewsItem {
   title: string;
   summary: string;
@@ -26,11 +24,21 @@ export interface CommodityReportData {
     nonFerrous: NewsItem[];
     aluminum: NewsItem[];
     scrap: NewsItem[];
+    [key: string]: NewsItem[];
   };
 }
 
+const getAi = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Gemini API key is missing. Please check your AI Studio settings.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
 async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-flash-latest";
+  const ai = getAi();
   
   const prompt = `
     당신은 원자재 시장 전문 분석가이자 뉴스 요약가입니다. 
@@ -51,117 +59,127 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
     - 검색 결과가 부족하면 가장 최신의 관련 뉴스만 포함하세요.
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
+  const config: any = {
+    tools: [{ googleSearch: {} }],
+    responseMimeType: "application/json",
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: {
+        date: { type: Type.STRING },
+        lmeAluminum: {
           type: Type.OBJECT,
           properties: {
-            date: { type: Type.STRING },
-            lmeAluminum: {
-              type: Type.OBJECT,
-              properties: {
-                current: { type: Type.STRING },
-                change: { type: Type.STRING },
-                changePercent: { type: Type.STRING },
-                history: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      day: { type: Type.STRING },
-                      value: { type: Type.NUMBER }
-                    }
-                  }
+            current: { type: Type.STRING },
+            change: { type: Type.STRING },
+            changePercent: { type: Type.STRING },
+            history: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  day: { type: Type.STRING },
+                  value: { type: Type.NUMBER }
+                }
+              }
+            }
+          }
+        },
+        ppsAluminum: {
+          type: Type.OBJECT,
+          properties: {
+            current: { type: Type.STRING },
+            change: { type: Type.STRING },
+            changePercent: { type: Type.STRING }
+          }
+        },
+        news: {
+          type: Type.OBJECT,
+          properties: {
+            global: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  summary: { type: Type.STRING },
+                  timeAgo: { type: Type.STRING },
+                  source: { type: Type.STRING },
+                  url: { type: Type.STRING }
                 }
               }
             },
-            ppsAluminum: {
-              type: Type.OBJECT,
-              properties: {
-                current: { type: Type.STRING },
-                change: { type: Type.STRING },
-                changePercent: { type: Type.STRING }
+            nonFerrous: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  summary: { type: Type.STRING },
+                  timeAgo: { type: Type.STRING },
+                  source: { type: Type.STRING },
+                  url: { type: Type.STRING }
+                }
               }
             },
-            news: {
-              type: Type.OBJECT,
-              properties: {
-                global: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      title: { type: Type.STRING },
-                      summary: { type: Type.STRING },
-                      timeAgo: { type: Type.STRING },
-                      source: { type: Type.STRING },
-                      url: { type: Type.STRING }
-                    }
-                  }
-                },
-                nonFerrous: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      title: { type: Type.STRING },
-                      summary: { type: Type.STRING },
-                      timeAgo: { type: Type.STRING },
-                      source: { type: Type.STRING },
-                      url: { type: Type.STRING }
-                    }
-                  }
-                },
-                aluminum: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      title: { type: Type.STRING },
-                      summary: { type: Type.STRING },
-                      timeAgo: { type: Type.STRING },
-                      source: { type: Type.STRING },
-                      url: { type: Type.STRING }
-                    }
-                  }
-                },
-                scrap: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      title: { type: Type.STRING },
-                      summary: { type: Type.STRING },
-                      timeAgo: { type: Type.STRING },
-                      source: { type: Type.STRING },
-                      url: { type: Type.STRING }
-                    }
-                  }
+            aluminum: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  summary: { type: Type.STRING },
+                  timeAgo: { type: Type.STRING },
+                  source: { type: Type.STRING },
+                  url: { type: Type.STRING }
+                }
+              }
+            },
+            scrap: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  summary: { type: Type.STRING },
+                  timeAgo: { type: Type.STRING },
+                  source: { type: Type.STRING },
+                  url: { type: Type.STRING }
                 }
               }
             }
           }
         }
-      } as any,
-    });
+      }
+    }
+  };
+
+  try {
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: config,
+      });
+    } catch (searchError: any) {
+      console.warn("Search grounding failed, retrying without tools...", searchError.message);
+      response = await ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: { ...config, tools: [] },
+      });
+    }
 
     return JSON.parse(response.text);
   } catch (error: any) {
-    // Handle 429 Quota Exceeded with Exponential Backoff
     const errorMsg = error?.message || "";
     if (error?.status === 429 || errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
       if (retryCount < 2) {
-        const delay = Math.pow(2, retryCount) * 5000; // 5s, 10s
-        console.warn(`Quota exceeded. Retrying in ${delay}ms... (Attempt ${retryCount + 1})`);
+        const delay = Math.pow(2, retryCount) * 5000;
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchFromGemini(retryCount + 1);
       }
-      throw new Error("API 사용량이 초과되었습니다. 잠시 후 다시 시도하거나 내일 다시 확인해주세요.");
+      throw new Error("QUOTA_EXHAUSTED");
     }
     throw error;
   }
@@ -180,37 +198,16 @@ export async function fetchStructuredCommodityReport(): Promise<CommodityReportD
       }
     }
 
-    // 2. Check server cache
-    const cacheResponse = await fetch('/api/report');
-    if (cacheResponse.ok) {
-      const cachedData = await cacheResponse.json();
-      if (cachedData) {
-        console.log("Using server cache");
-        sessionStorage.setItem('commodity_report', JSON.stringify({ data: cachedData, timestamp: Date.now() }));
-        return cachedData;
-      }
-    }
+    // 2. Fetch from Gemini directly (Frontend)
+    console.log("Fetching report from Gemini...");
+    const data = await fetchFromGemini();
+    
+    // 3. Save to session cache
+    sessionStorage.setItem('commodity_report', JSON.stringify({ data, timestamp: Date.now() }));
 
-    // 3. Fetch from Gemini
-    console.log("Fetching fresh data from Gemini...");
-    const newData = await fetchFromGemini();
-
-    // 4. Save to caches
-    sessionStorage.setItem('commodity_report', JSON.stringify({ data: newData, timestamp: Date.now() }));
-    fetch('/api/report', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newData)
-    }).catch(console.error);
-
-    return newData;
+    return data;
   } catch (e: any) {
     console.error("Failed to fetch report", e);
-    
-    if (e.message?.includes("429") || e.toString().includes("quota")) {
-      throw new Error("API 사용량이 초과되었습니다. 잠시 후 다시 시도하거나 내일 다시 확인해주세요.");
-    }
-    
-    throw new Error("데이터를 불러오는 중 오류가 발생했습니다.");
+    throw e;
   }
 }

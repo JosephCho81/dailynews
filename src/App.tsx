@@ -29,9 +29,17 @@ export default function App() {
     try {
       const result = await fetchStructuredCommodityReport();
       setData(result);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError('데이터를 불러오는 중 오류가 발생했습니다.');
+      let msg = err.message || '데이터를 불러오는 중 오류가 발생했습니다.';
+      
+      if (msg.includes("API key not valid") || msg.includes("INVALID_ARGUMENT")) {
+        msg = "Gemini API 키가 유효하지 않습니다. AI Studio 설정(Settings) 메뉴에서 API 키가 올바르게 설정되어 있는지 확인해 주세요.";
+      } else if (msg.includes("QUOTA_EXHAUSTED") || msg.includes("429")) {
+        msg = "API 사용량이 초과되었습니다. 잠시 후 다시 시도해 주세요.";
+      }
+      
+      setError(msg);
     } finally {
       setLoading(false);
     }
