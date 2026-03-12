@@ -47,7 +47,12 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
     [데이터 수집 및 분석 요청]
     1. LME 알루미늄 시세: 현재 가격($/ton), 전일 대비 변동액, 변동률, 그리고 지난 5일간의 대략적인 가격 추이(history)를 파악하세요.
     2. 조달청 알루미늄 가격: 현재 가격(원/ton), 변동 정보.
-    3. 뉴스: [글로벌, 비철금속, 알루미늄, 스크랩] 카테고리별로 최신 주요 국내 및 해외 뉴스를 **각각 10개씩** 수집하여 요약하세요.
+    3. 뉴스 수집 (JSON 키 매핑 필수):
+       - '글로벌' 관련 뉴스 -> "global" 키에 할당
+       - '비철금속' 관련 뉴스 -> "nonFerrous" 키에 할당
+       - '알루미늄' 관련 뉴스 -> "aluminum" 키에 할당
+       - '스크랩' 관련 뉴스 -> "scrap" 키에 할당
+       각 카테고리별로 최신 주요 뉴스를 **5~8개씩** 수집하여 요약하세요.
     
     [주요 참고 소스]
     Fastmarkets, Investing.com, AlCircle, Mining.com, 조달청, KOMIS, 철강금속신문 등.
@@ -55,8 +60,9 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
     [지시사항]
     - 모든 텍스트는 **한국어**로 작성하세요.
     - 뉴스 요약은 핵심만 1-2문장으로 간결하게 작성하세요.
-    - **정확한 출처와 원본 링크(URL)를 포함하세요.**
+    - **정확한 출처와 원본 링크(URL)를 반드시 포함하세요.**
     - 검색 결과가 부족하면 가장 최신의 관련 뉴스만 포함하세요.
+    - JSON 구조를 엄격히 준수하세요.
   `;
 
   const config: any = {

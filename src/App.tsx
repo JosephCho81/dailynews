@@ -189,45 +189,52 @@ export default function App() {
 
               {/* News List */}
               <div className="space-y-4">
-                {activeNews.map((item, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex gap-4"
-                  >
-                    <div className="mt-1">
-                      <MapPin className="w-5 h-5 text-red-500 fill-red-500/20" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <h4 className="font-bold text-slate-900 leading-snug">
-                        {item.title}
-                      </h4>
-                      <p className="text-sm text-slate-600 leading-relaxed">
-                        {item.summary}
-                      </p>
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                          {item.source}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-[10px] text-slate-400 font-medium">{item.timeAgo}</span>
-                          {item.url && (
-                            <a 
-                              href={item.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-[10px] font-bold text-slate-400 hover:text-blue-600 underline underline-offset-2"
-                            >
-                              원본 링크
-                            </a>
-                          )}
+                {activeNews.length > 0 ? (
+                  activeNews.map((item, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex gap-4"
+                    >
+                      <div className="mt-1">
+                        <MapPin className="w-5 h-5 text-red-500 fill-red-500/20" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <h4 className="font-bold text-slate-900 leading-snug">
+                          {item.title}
+                        </h4>
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                          {item.summary}
+                        </p>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                            {item.source}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-slate-400 font-medium">{item.timeAgo}</span>
+                            {item.url && (
+                              <a 
+                                href={item.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-bold text-slate-400 hover:text-blue-600 underline underline-offset-2"
+                              >
+                                원본 링크
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200">
+                    <Newspaper className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                    <p className="text-slate-400 font-medium">해당 카테고리의 최신 뉴스가 없습니다.</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
