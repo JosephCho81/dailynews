@@ -29,7 +29,7 @@ export interface CommodityReportData {
   };
 }
 
-async function fetchFromGemini(): Promise<CommodityReportData> {
+async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
   const model = "gemini-3-flash-preview";
   
   const prompt = `
@@ -51,105 +51,120 @@ async function fetchFromGemini(): Promise<CommodityReportData> {
     - 검색 결과가 부족하면 가장 최신의 관련 뉴스만 포함하세요.
   `;
 
-  const response = await ai.models.generateContent({
-    model: model,
-    contents: prompt,
-    config: {
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          date: { type: Type.STRING },
-          lmeAluminum: {
-            type: Type.OBJECT,
-            properties: {
-              current: { type: Type.STRING },
-              change: { type: Type.STRING },
-              changePercent: { type: Type.STRING },
-              history: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    day: { type: Type.STRING },
-                    value: { type: Type.NUMBER }
+  try {
+    const response = await ai.models.generateContent({
+      model: model,
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            date: { type: Type.STRING },
+            lmeAluminum: {
+              type: Type.OBJECT,
+              properties: {
+                current: { type: Type.STRING },
+                change: { type: Type.STRING },
+                changePercent: { type: Type.STRING },
+                history: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      day: { type: Type.STRING },
+                      value: { type: Type.NUMBER }
+                    }
                   }
                 }
               }
-            }
-          },
-          ppsAluminum: {
-            type: Type.OBJECT,
-            properties: {
-              current: { type: Type.STRING },
-              change: { type: Type.STRING },
-              changePercent: { type: Type.STRING }
-            }
-          },
-          news: {
-            type: Type.OBJECT,
-            properties: {
-              global: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    title: { type: Type.STRING },
-                    summary: { type: Type.STRING },
-                    timeAgo: { type: Type.STRING },
-                    source: { type: Type.STRING },
-                    url: { type: Type.STRING }
+            },
+            ppsAluminum: {
+              type: Type.OBJECT,
+              properties: {
+                current: { type: Type.STRING },
+                change: { type: Type.STRING },
+                changePercent: { type: Type.STRING }
+              }
+            },
+            news: {
+              type: Type.OBJECT,
+              properties: {
+                global: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      title: { type: Type.STRING },
+                      summary: { type: Type.STRING },
+                      timeAgo: { type: Type.STRING },
+                      source: { type: Type.STRING },
+                      url: { type: Type.STRING }
+                    }
                   }
-                }
-              },
-              nonFerrous: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    title: { type: Type.STRING },
-                    summary: { type: Type.STRING },
-                    timeAgo: { type: Type.STRING },
-                    source: { type: Type.STRING },
-                    url: { type: Type.STRING }
+                },
+                nonFerrous: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      title: { type: Type.STRING },
+                      summary: { type: Type.STRING },
+                      timeAgo: { type: Type.STRING },
+                      source: { type: Type.STRING },
+                      url: { type: Type.STRING }
+                    }
                   }
-                }
-              },
-              aluminum: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    title: { type: Type.STRING },
-                    summary: { type: Type.STRING },
-                    timeAgo: { type: Type.STRING },
-                    source: { type: Type.STRING },
-                    url: { type: Type.STRING }
+                },
+                aluminum: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      title: { type: Type.STRING },
+                      summary: { type: Type.STRING },
+                      timeAgo: { type: Type.STRING },
+                      source: { type: Type.STRING },
+                      url: { type: Type.STRING }
+                    }
                   }
-                }
-              },
-              scrap: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    title: { type: Type.STRING },
-                    summary: { type: Type.STRING },
-                    timeAgo: { type: Type.STRING },
-                    source: { type: Type.STRING },
-                    url: { type: Type.STRING }
+                },
+                scrap: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      title: { type: Type.STRING },
+                      summary: { type: Type.STRING },
+                      timeAgo: { type: Type.STRING },
+                      source: { type: Type.STRING },
+                      url: { type: Type.STRING }
+                    }
                   }
                 }
               }
             }
           }
         }
-      }
-    },
-  });
+      } as any,
+    });
 
-  return JSON.parse(response.text);
+    return JSON.parse(response.text);
+  } catch (error: any) {
+    // Handle 429 Quota Exceeded with Exponential Backoff
+    const errorMsg = error?.message || "";
+    if (error?.status === 429 || errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED')) {
+      if (retryCount < 2) {
+        const delay = Math.pow(2, retryCount) * 5000; // 5s, 10s
+        console.warn(`Quota exceeded. Retrying in ${delay}ms... (Attempt ${retryCount + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return fetchFromGemini(retryCount + 1);
+      }
+      throw new Error("API 사용량이 초과되었습니다. 잠시 후 다시 시도하거나 내일 다시 확인해주세요.");
+    }
+    throw error;
+  }
 }
 
 export async function fetchStructuredCommodityReport(): Promise<CommodityReportData> {

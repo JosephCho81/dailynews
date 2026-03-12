@@ -1,13 +1,10 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
-import path from "path";
-import compression from "compression";
-import { GoogleGenAI, Type } from "@google/genai";
 
 const app = express();
 const PORT = 3000;
 
-// In-memory cache
+// In-memory cache (Note: Serverless functions may reset this)
 let cachedData: any = null;
 let lastFetched: number = 0;
 
@@ -15,23 +12,27 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(compression()); // Enable Gzip compression
   app.use(express.json({ limit: '1mb' }));
 
   // API routes
   app.get("/api/report", (req, res) => {
-    const now = new Date();
-    const lastFetchedDate = new Date(lastFetched);
-    
-    const isSameDay = cachedData && 
-      now.getFullYear() === lastFetchedDate.getFullYear() &&
-      now.getMonth() === lastFetchedDate.getMonth() &&
-      now.getDate() === lastFetchedDate.getDate();
+    try {
+      const now = new Date();
+      const lastFetchedDate = new Date(lastFetched);
+      
+      const isSameDay = cachedData && 
+        now.getFullYear() === lastFetchedDate.getFullYear() &&
+        now.getMonth() === lastFetchedDate.getMonth() &&
+        now.getDate() === lastFetchedDate.getDate();
 
-    if (isSameDay) {
-      return res.json(cachedData);
+      if (isSameDay) {
+        return res.json(cachedData);
+      }
+      res.json(null);
+    } catch (err) {
+      console.error("Error in /api/report:", err);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-    res.json(null);
   });
 
   app.post("/api/report", (req, res) => {
