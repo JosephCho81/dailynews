@@ -12,6 +12,7 @@ export interface PriceData {
   current: string;
   change: string;
   changePercent: string;
+  vatInfo?: string;
   history?: { day: string; value: number }[];
 }
 
@@ -45,14 +46,14 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
     최근 24시간 내의 'LME 알루미늄 시세'와 '조달청 알루미늄 방출 가격' 및 관련 뉴스를 분석하여 JSON 형식으로 제공하세요.
 
     [데이터 수집 및 분석 요청]
-    1. LME 알루미늄 시세: 현재 가격($/ton), 전일 대비 변동액, 변동률, 그리고 지난 5일간의 대략적인 가격 추이(history)를 파악하세요.
-    2. 조달청 알루미늄 가격: 현재 가격(원/ton), 변동 정보.
+    1. LME 알루미늄 시세: 현재 가격($/ton), 전일 대비 변동액, 변동률을 파악하세요.
+    2. 조달청 알루미늄 가격: 현재 가격(원/ton), 변동 정보, 그리고 **부가세 포함/별도 여부**를 반드시 파악하여 명시하세요.
     3. 뉴스 수집 (JSON 키 매핑 필수):
        - '글로벌' 관련 뉴스 -> "global" 키에 할당
        - '비철금속' 관련 뉴스 -> "nonFerrous" 키에 할당
        - '알루미늄' 관련 뉴스 -> "aluminum" 키에 할당
        - '스크랩' 관련 뉴스 -> "scrap" 키에 할당
-       각 카테고리별로 최신 주요 뉴스를 **5~8개씩** 수집하여 요약하세요.
+       각 카테고리별로 최신 주요 뉴스를 **10개씩** 수집하여 요약하세요.
     
     [주요 참고 소스]
     Fastmarkets, Investing.com, AlCircle, Mining.com, 조달청, KOMIS, 철강금속신문 등.
@@ -95,7 +96,8 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
           properties: {
             current: { type: Type.STRING },
             change: { type: Type.STRING },
-            changePercent: { type: Type.STRING }
+            changePercent: { type: Type.STRING },
+            vatInfo: { type: Type.STRING, description: "부가세 포함/별도 여부 (예: 부가세 별도, 부가세 포함)" }
           }
         },
         news: {

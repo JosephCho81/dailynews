@@ -10,10 +10,11 @@ import {
   Settings, 
   Menu, 
   Compass,
-  MapPin
+  MapPin,
+  Globe,
+  Coins
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LineChart, Line, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
 
 type Category = 'global' | 'nonFerrous' | 'aluminum' | 'scrap';
 
@@ -123,50 +124,47 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               className="px-6 pt-2 space-y-6"
             >
-              {/* Featured Price Card */}
-              <div className="relative bg-gradient-to-br from-[#1a365d] to-[#2d3748] rounded-[32px] p-8 text-white shadow-2xl shadow-blue-900/20 overflow-hidden">
-                <div className="absolute top-8 right-8 opacity-40">
-                  <Compass className="w-12 h-12 text-[#e2e8f0]" />
-                </div>
-                
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold tracking-wider opacity-90 uppercase">LME ALUMINUM</h2>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-black tracking-tight">${data.lmeAluminum?.current || '0.00'}</span>
-                    <span className="text-lg font-bold opacity-70">USD</span>
+              {/* Featured Price Cards Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* LME Aluminum Card */}
+                <div className="bg-gradient-to-br from-[#1a365d] to-[#2d3748] rounded-[24px] p-5 text-white shadow-xl shadow-blue-900/10 relative overflow-hidden">
+                  <div className="absolute -top-2 -right-2 opacity-10">
+                    <Globe className="w-16 h-16" />
                   </div>
-                  <div className="flex items-center gap-1 text-emerald-400 font-bold">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>{data.lmeAluminum?.change || '0.00'} ({data.lmeAluminum?.changePercent || '0.00%'})</span>
+                  <div className="space-y-1 relative z-10">
+                    <h2 className="text-[10px] font-bold tracking-widest opacity-70 uppercase">LME ALUMINUM</h2>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black tracking-tight">${data.lmeAluminum?.current || '0.00'}</span>
+                      <span className="text-[10px] font-bold opacity-50">USD</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold">
+                      <TrendingUp className="w-3 h-3" />
+                      <span>{data.lmeAluminum?.changePercent || '0.00%'}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Chart Area */}
-                <div className="h-32 mt-8 -mx-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data.lmeAluminum?.history || []}>
-                      <Line 
-                        type="monotone" 
-                        dataKey="value" 
-                        stroke="#4ade80" 
-                        strokeWidth={3} 
-                        dot={false} 
-                      />
-                      <XAxis 
-                        dataKey="day" 
-                        hide 
-                      />
-                      <YAxis hide domain={['auto', 'auto']} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div className="flex justify-between px-2 mt-2 text-[10px] font-bold uppercase tracking-widest opacity-50">
-                  <span>Mon</span>
-                  <span>Tue</span>
-                  <span>Wed</span>
-                  <span>Thu</span>
-                  <span>Fri</span>
+                {/* PPS Aluminum Card */}
+                <div className="bg-white rounded-[24px] p-5 text-slate-900 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
+                  <div className="absolute -top-2 -right-2 opacity-5">
+                    <Coins className="w-16 h-16" />
+                  </div>
+                  <div className="space-y-1 relative z-10">
+                    <h2 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">조달청 알루미늄</h2>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black tracking-tight text-slate-900">{data.ppsAluminum?.current || '0'}</span>
+                      <span className="text-[10px] font-bold text-slate-400">원</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-emerald-600 text-[10px] font-bold">
+                        <TrendingUp className="w-3 h-3" />
+                        <span>{data.ppsAluminum?.changePercent || '0.00%'}</span>
+                      </div>
+                      <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                        {data.ppsAluminum?.vatInfo || '부가세 별도'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
