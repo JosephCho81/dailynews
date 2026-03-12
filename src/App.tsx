@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { fetchStructuredCommodityReport, CommodityReportData, NewsItem } from './services/geminiService';
 import { 
   Loader2, 
@@ -48,10 +48,10 @@ export default function App() {
     { id: 'scrap', label: '스크랩' },
   ];
 
-  const getActiveNews = (): NewsItem[] => {
+  const activeNews = useMemo(() => {
     if (!data || !data.news) return [];
     return data.news[activeCategory] || [];
-  };
+  }, [data, activeCategory]);
 
   return (
     <div className="flex flex-col h-screen bg-[#f4f7fa] font-sans overflow-hidden">
@@ -81,10 +81,22 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-32 text-slate-400"
+              className="flex flex-col items-center justify-center py-32 space-y-6"
             >
-              <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
-              <p className="font-medium">분석 중...</p>
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-0 border-4 border-t-blue-600 rounded-full"
+                ></motion.div>
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-lg font-bold text-slate-900">시장 데이터 분석 중</p>
+                <p className="text-sm text-slate-400 max-w-[200px] mx-auto leading-tight">
+                  LME 시세와 최신 뉴스를 수집하고 있습니다. (약 10-20초 소요)
+                </p>
+              </div>
             </motion.div>
           ) : error ? (
             <div className="p-6 text-center">
@@ -169,7 +181,7 @@ export default function App() {
 
               {/* News List */}
               <div className="space-y-4">
-                {getActiveNews().map((item, idx) => (
+                {activeNews.map((item, idx) => (
                   <motion.div
                     key={idx}
                     initial={{ opacity: 0, x: -10 }}

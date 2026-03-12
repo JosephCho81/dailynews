@@ -42,13 +42,13 @@ async function fetchFromGemini(): Promise<CommodityReportData> {
     3. 뉴스: [글로벌, 비철금속, 알루미늄, 스크랩] 카테고리별로 최신 주요 국내 및 해외 뉴스를 **각각 10개씩** 수집하여 요약하세요.
     
     [주요 참고 소스]
-    Fastmarkets, Investing.com, AlCircle, Mining.com, Argus Media, 조달청, KOMIS, 철강금속신문, 페로타임즈 등 전문 매체.
+    Fastmarkets, Investing.com, AlCircle, Mining.com, 조달청, KOMIS, 철강금속신문 등.
 
     [지시사항]
-    - 뉴스 제목, 요약, 출처 등 모든 텍스트는 **반드시 한국어로만** 작성하세요.
-    - 뉴스 요약은 전문가의 시각으로 2-3문장으로 작성하세요.
-    - **각 뉴스마다 반드시 정확한 출처(언론사명)와 원본 링크(URL)를 포함하세요.**
-    - 시간 정보(timeAgo)는 '2h ago', '4h ago'와 같은 형식으로 추정하여 기입하세요.
+    - 모든 텍스트는 **한국어**로 작성하세요.
+    - 뉴스 요약은 핵심만 1-2문장으로 간결하게 작성하세요.
+    - **정확한 출처와 원본 링크(URL)를 포함하세요.**
+    - 검색 결과가 부족하면 가장 최신의 관련 뉴스만 포함하세요.
   `;
 
   const response = await ai.models.generateContent({
@@ -154,26 +154,39 @@ async function fetchFromGemini(): Promise<CommodityReportData> {
 
 export async function fetchStructuredCommodityReport(): Promise<CommodityReportData> {
   try {
-    // 1. Check server cache first
+    // 1. Check Session Storage (Instant)
+    const sessionCache = sessionStorage.getItem('commodity_report');
+    if (sessionCache) {
+      const { data, timestamp } = JSON.parse(sessionCache);
+      const isToday = new Date(timestamp).toDateString() === new Date().toDateString();
+      if (isToday) {
+        console.log("Using session cache");
+        return data;
+      }
+    }
+
+    // 2. Check server cache
     const cacheResponse = await fetch('/api/report');
     if (cacheResponse.ok) {
       const cachedData = await cacheResponse.json();
       if (cachedData) {
-        console.log("Using cached data from server");
+        console.log("Using server cache");
+        sessionStorage.setItem('commodity_report', JSON.stringify({ data: cachedData, timestamp: Date.now() }));
         return cachedData;
       }
     }
 
-    // 2. If no cache, fetch from Gemini (Client-side)
-    console.log("No cache found, fetching from Gemini...");
+    // 3. Fetch from Gemini
+    console.log("Fetching fresh data from Gemini...");
     const newData = await fetchFromGemini();
 
-    // 3. Save to server cache for others
-    await fetch('/api/report', {
+    // 4. Save to caches
+    sessionStorage.setItem('commodity_report', JSON.stringify({ data: newData, timestamp: Date.now() }));
+    fetch('/api/report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newData)
-    });
+    }).catch(console.error);
 
     return newData;
   } catch (e: any) {

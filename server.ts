@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import compression from "compression";
 import { GoogleGenAI, Type } from "@google/genai";
 
 const app = express();
@@ -14,6 +15,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.use(compression()); // Enable Gzip compression
   app.use(express.json({ limit: '1mb' }));
 
   // API routes
@@ -46,10 +48,11 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    // In production (Vercel), we only handle API routes here.
+    // Static files are handled by Vercel's @vercel/static-build
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.status(404).send('Not found');
     });
   }
 
