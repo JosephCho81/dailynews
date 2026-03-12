@@ -30,7 +30,7 @@ export interface CommodityReportData {
 }
 
 export async function fetchStructuredCommodityReport(): Promise<CommodityReportData> {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-1.5-flash";
   
   const prompt = `
     당신은 원자재 시장 전문 분석가이자 뉴스 요약가입니다. 
