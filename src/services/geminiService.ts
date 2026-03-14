@@ -51,24 +51,29 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
     "https://tradingeconomics.com/stream",
     "https://www.komis.or.kr/Komis/Board/DAYNEWS",
     "http://www.snmnews.com/",
-    "https://www.ferrotimes.com/"
+    "https://www.ferrotimes.com/",
+    "https://www.argusmedia.com/en/news-and-insights/latest-market-news",
+    "https://www.lightmetalage.com/news-section/industry-news/"
   ];
 
   const prompt = `
     당신은 원자재 시장 전문 분석가입니다. 
-    **2026년 3월 14일** 기준, 최신 'LME 알루미늄 시세', '조달청 알루미늄 가격' 및 관련 산업 뉴스를 분석하여 JSON으로 제공하세요.
+    **현재 시점(2026년 3월 14일)** 기준, 최신 'LME 알루미늄 시세', '조달청 알루미늄 가격' 및 관련 산업 뉴스를 분석하여 JSON으로 제공하세요.
 
     [데이터 요청]
     1. LME 알루미늄: 현재가($/ton), 변동액, 변동률
     2. 조달청 알루미늄: 현재가(원/ton), 변동 정보, 부가세 여부
     3. 뉴스 (카테고리별 10개 목표):
-       - **참고 소스**: ${targetUrls.join(", ")} 및 기타 철강/비철 전문지
-       - **필수 포함**: 제강사(Steelmakers), 제철소(Steel Mills), 알루미늄 제련소 동향
-       - **날짜 기준**: 오늘 뉴스를 우선하되, 부족하면 최근 3~5일 내의 뉴스를 포함하여 **절대로 빈 배열이 되지 않도록** 하세요.
+       - **중요: 링크 정확성**: 절대로 URL을 추측하거나 임의로 생성하지 마세요. 구글 검색 도구를 통해 실제로 확인된 기사의 원본 URL만 포함하세요.
+       - **검증**: 기사 제목과 요약 내용이 해당 URL의 실제 내용과 일치하는지 반드시 확인하세요. 404 에러가 나거나 잘못된 링크는 리스트에서 즉시 제외하세요.
+       - **참고 소스**: ${targetUrls.join(", ")} 및 국내외 철강/비철 전문지.
+       - **필수 포함**: 제강사(Steelmakers), 제철소(Steel Mills), 알루미늄 제련소 동향.
+       - **날짜**: 최근 3~5일 내의 살아있는(Active) 뉴스만 포함하세요.
        - **카테고리**: global, nonFerrous, aluminum, scrap
     
     [지시사항]
-    - 한국어로 작성, 뉴스 요약은 1-2문장, 출처와 URL 필수.
+    - 한국어로 작성, 뉴스 요약은 1-2문장으로 핵심만 전달.
+    - **실제 존재하는 유효한 URL만 제공할 것.**
     - JSON 구조를 엄격히 준수하세요.
   `;
 
