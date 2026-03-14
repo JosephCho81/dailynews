@@ -24,11 +24,11 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<Category>('aluminum');
 
-  const loadData = async () => {
+  const loadData = async (force = false) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchStructuredCommodityReport();
+      const result = await fetchStructuredCommodityReport(force);
       setData(result);
     } catch (err: any) {
       console.error(err);
@@ -67,6 +67,14 @@ export default function App() {
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between bg-white/50 backdrop-blur-sm">
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">오늘의 원자재 뉴스</h1>
+        <button 
+          onClick={() => loadData(true)}
+          disabled={loading}
+          className="p-2 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+          title="새로고침"
+        >
+          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+        </button>
       </header>
 
       {/* Main Content Area */}
@@ -99,7 +107,7 @@ export default function App() {
             <div className="p-6 text-center">
               <p className="text-red-500 font-medium mb-4">{error}</p>
               <button 
-                onClick={loadData}
+                onClick={() => loadData()}
                 className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold"
               >
                 다시 시도
