@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-// @ts-ignore
-import logo from './logo.png';
 import { fetchStructuredCommodityReport, CommodityReportData, NewsItem, formatPrice } from './services/geminiService';
 import { 
   Loader2, 
@@ -80,14 +78,12 @@ export default function App() {
         {/* 회사 로고 (CI) */}
         <div className="mb-4">
           <img 
-            src={logo || "/logo.png"} 
+            src="/logo.png" 
             alt="Company CI" 
             className="h-12 object-contain"
             onError={(e) => {
-              // 로고가 정말 없을 때만 숨김
-              if (e.currentTarget.src.includes('logo.png')) {
-                e.currentTarget.style.display = 'none';
-              }
+              // 이미지가 정말 없을 때만 숨김
+              e.currentTarget.style.display = 'none';
             }}
           />
         </div>
