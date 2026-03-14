@@ -40,41 +40,32 @@ const getAi = () => {
 };
 
 async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
-  const model = "gemini-flash-latest";
+  // 정확도를 위해 더 강력한 모델인 gemini-3.1-pro-preview로 업그레이드합니다.
+  const model = "gemini-3.1-pro-preview";
   const ai = getAi();
   
-  const targetUrls = [
-    "https://www.fastmarkets.com/products/news-market-analysis/metals-and-mining/",
-    "https://www.investing.com/commodities/aluminum",
-    "https://www.alcircle.com/news/primary-aluminium",
-    "https://www.mining.com/category/critical-minerals/",
-    "https://tradingeconomics.com/stream",
-    "https://www.komis.or.kr/Komis/Board/DAYNEWS",
-    "http://www.snmnews.com/",
-    "https://www.ferrotimes.com/",
-    "https://www.argusmedia.com/en/news-and-insights/latest-market-news",
-    "https://www.lightmetalage.com/news-section/industry-news/"
-  ];
-
   const prompt = `
-    당신은 원자재 시장 전문 분석가입니다. 
-    **현재 시점(2026년 3월 14일)** 기준, 최신 'LME 알루미늄 시세', '조달청 알루미늄 가격' 및 관련 산업 뉴스를 분석하여 JSON으로 제공하세요.
+    당신은 전 세계 원자재 시장을 실시간 모니터링하는 수석 분석가입니다. 
+    **현재 시점(2026년 3월 14일)** 기준, 지난 24시간 이내의 가장 긴급하고 정확한 뉴스만 수집하여 JSON으로 제공하세요.
 
-    [데이터 요청]
-    1. LME 알루미늄: 현재가($/ton), 변동액, 변동률
-    2. 조달청 알루미늄: 현재가(원/ton), 변동 정보, 부가세 여부
-    3. 뉴스 (카테고리별 10개 목표):
-       - **중요: 링크 정확성**: 절대로 URL을 추측하거나 임의로 생성하지 마세요. 구글 검색 도구를 통해 실제로 확인된 기사의 원본 URL만 포함하세요.
-       - **검증**: 기사 제목과 요약 내용이 해당 URL의 실제 내용과 일치하는지 반드시 확인하세요. 404 에러가 나거나 잘못된 링크는 리스트에서 즉시 제외하세요.
-       - **참고 소스**: ${targetUrls.join(", ")} 및 국내외 철강/비철 전문지.
-       - **필수 포함**: 제강사(Steelmakers), 제철소(Steel Mills), 알루미늄 제련소 동향.
-       - **날짜**: 최근 3~5일 내의 살아있는(Active) 뉴스만 포함하세요.
-       - **카테고리**: global, nonFerrous, aluminum, scrap
+    [데이터 요청 - 실시간 정확도]
+    1. LME 알루미늄: lme.com 공식 홈페이지의 'Official Prices'를 확인하여 3월 13일(금) 종가(Cash $3,519.50)를 정확히 반영하세요.
+    2. 조달청 알루미늄: 조달청 공식 발표 기준 최신가.
+
+    [뉴스 수집 - 24시간 이내 실시간 뉴스]
+    - **수집 기간**: 반드시 **최근 24시간 이내 (2026년 3월 13일 ~ 14일)** 뉴스만 포함하세요.
+    - **핵심 키워드**: 호르무즈 해협 긴장(Strait of Hormuz), 미국-이란 갈등, 러시아 전쟁, 에너지 위기, 알루미늄 공급망 붕괴.
+    - **수량 보장**: **각 카테고리(global, nonFerrous, aluminum, scrap)별로 반드시 5개 이상의 기사를 포함하세요.**
+    - **중요: 링크 무결성 (404 에러 절대 금지)**: 
+      * **검색 도구(googleSearch)의 결과에서 제공하는 'link' 필드의 URL을 단 한 글자도 수정하지 말고 그대로 복사해서 사용하세요.**
+      * 절대로 URL 구조를 추측하거나 생성하지 마세요. (예: bloomberg.com/news/... 처럼 그럴듯하게 만들지 마세요)
+      * 검색 결과에 실제 기사 원본 링크가 없는 경우 해당 기사는 제외하세요.
+      * 클릭 시 바로 기사 본문이 나오는 유효한 링크만 연결하세요.
     
     [지시사항]
-    - 한국어로 작성, 뉴스 요약은 1-2문장으로 핵심만 전달.
-    - **실제 존재하는 유효한 URL만 제공할 것.**
-    - JSON 구조를 엄격히 준수하세요.
+    - 모든 텍스트는 한국어로 작성.
+    - 뉴스 요약은 현재의 지정학적 위기와 원자재 가격의 상관관계를 중심으로 1-2문장 작성.
+    - JSON 구조를 엄격히 준수하며, 어떤 카테고리도 빈 배열로 두지 마세요.
   `;
 
   const config: any = {
