@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import logo from './logo.png';
 import { fetchStructuredCommodityReport, CommodityReportData, NewsItem, formatPrice } from './services/geminiService';
 import { 
   Loader2, 
@@ -75,13 +76,15 @@ export default function App() {
           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
         </button>
 
-        {/* Company CI Placeholder - Replace src with actual logo path */}
+        {/* 회사 로고 (CI) */}
         <div className="mb-4">
           <img 
-            src="https://picsum.photos/seed/a1-logo/120/60" 
+            src={logo} 
             alt="Company CI" 
             className="h-12 object-contain"
-            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
           />
         </div>
 
