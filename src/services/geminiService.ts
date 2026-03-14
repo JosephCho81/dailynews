@@ -1,4 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { db } from "../firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 export interface NewsItem {
   title: string;
@@ -43,26 +45,30 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
   
   const prompt = `
     당신은 원자재 시장 전문 분석가이자 뉴스 요약가입니다. 
-    최근 24시간 내의 'LME 알루미늄 시세'와 '조달청 알루미늄 방출 가격' 및 관련 뉴스를 분석하여 JSON 형식으로 제공하세요.
+    **오늘(${new Date().toLocaleDateString('ko-KR')}) 당일**의 'LME 알루미늄 시세'와 '조달청 알루미늄 방출 가격' 및 관련 뉴스를 분석하여 JSON 형식으로 제공하세요.
 
     [데이터 수집 및 분석 요청]
     1. LME 알루미늄 시세: 현재 가격($/ton), 전일 대비 변동액, 변동률을 파악하세요.
     2. 조달청 알루미늄 가격: 현재 가격(원/ton), 변동 정보, 그리고 **부가세 포함/별도 여부**를 반드시 파악하여 명시하세요.
-    3. 뉴스 수집 (JSON 키 매핑 필수):
-       - '글로벌' 관련 뉴스 -> "global" 키에 할당
-       - '비철금속' 관련 뉴스 -> "nonFerrous" 키에 할당
-       - '알루미늄' 관련 뉴스 -> "aluminum" 키에 할당
-       - '스크랩' 관련 뉴스 -> "scrap" 키에 할당
-       각 카테고리별로 최신 주요 뉴스를 **10개씩** 수집하여 요약하세요.
+    3. 뉴스 수집 및 검증 (JSON 키 매핑 필수):
+       - **당일(Today) 뉴스 우선**: 반드시 오늘 날짜의 뉴스를 우선적으로 수집하세요.
+       - **산업군 타겟**: 국내외 주요 **제강사(Steelmakers), 제철소(Steel Mills)**, 알루미늄 제련소 관련 최신 동향을 반드시 포함하세요.
+       - **카테고리 구성**:
+         - '글로벌' 관련 뉴스 -> "global" 키에 할당
+         - '비철금속' 관련 뉴스 -> "nonFerrous" 키에 할당
+         - '알루미늄' 관련 뉴스 -> "aluminum" 키에 할당
+         - '스크랩' 관련 뉴스 -> "scrap" 키에 할당
+       - **수량**: 각 카테고리별로 신뢰할 수 있는 뉴스를 **10개씩** 리스팅하세요.
+       - **검증**: 가짜 뉴스나 중복 뉴스를 배제하고, 공신력 있는 매체의 정보인지 기본 검증을 거친 후 요약하세요.
     
     [주요 참고 소스]
-    Fastmarkets, Investing.com, AlCircle, Mining.com, 조달청, KOMIS, 철강금속신문 등.
+    Fastmarkets, Investing.com, AlCircle, Mining.com, 조달청, KOMIS, 철강금속신문, 연합인포맥스, 한국경제 등.
 
     [지시사항]
     - 모든 텍스트는 **한국어**로 작성하세요.
     - 뉴스 요약은 핵심만 1-2문장으로 간결하게 작성하세요.
     - **정확한 출처와 원본 링크(URL)를 반드시 포함하세요.**
-    - 검색 결과가 부족하면 가장 최신의 관련 뉴스만 포함하세요.
+    - 당일 뉴스가 부족할 경우에만 가장 가까운 시점의 뉴스를 포함하되, '오늘'의 관점에서 가공하세요.
     - JSON 구조를 엄격히 준수하세요.
   `;
 
@@ -195,7 +201,25 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
 
 export async function fetchStructuredCommodityReport(): Promise<CommodityReportData> {
   try {
-    // 1. Check Session Storage (Instant)
+    // Use local date (YYYY-MM-DD) for the cache key
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayKey = `${year}-${month}-${day}`;
+    
+    const docRef = doc(db, "reports", todayKey);
+
+    // 1. Check Firestore first (Shared Cache)
+    console.log("Checking Firestore for today's report...");
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      console.log("Using Firestore cached report");
+      return docSnap.data() as CommodityReportData;
+    }
+
+    // 2. Check Session Storage (Local Cache fallback)
     const sessionCache = sessionStorage.getItem('commodity_report');
     if (sessionCache) {
       const { data, timestamp } = JSON.parse(sessionCache);
@@ -206,11 +230,19 @@ export async function fetchStructuredCommodityReport(): Promise<CommodityReportD
       }
     }
 
-    // 2. Fetch from Gemini directly (Frontend)
-    console.log("Fetching report from Gemini...");
+    // 3. Fetch from Gemini
+    console.log("Fetching new report from Gemini...");
     const data = await fetchFromGemini();
     
-    // 3. Save to session cache
+    // 4. Save to Firestore (for other users)
+    try {
+      await setDoc(docRef, data);
+      console.log("Report saved to Firestore");
+    } catch (fsError) {
+      console.error("Failed to save to Firestore", fsError);
+    }
+
+    // 5. Save to session cache
     sessionStorage.setItem('commodity_report', JSON.stringify({ data, timestamp: Date.now() }));
 
     return data;
@@ -219,3 +251,10 @@ export async function fetchStructuredCommodityReport(): Promise<CommodityReportD
     throw e;
   }
 }
+
+export const formatPrice = (price: string | number) => {
+  if (!price) return "0";
+  const num = typeof price === 'string' ? parseFloat(price.replace(/[^0-9.-]/g, '')) : price;
+  if (isNaN(num)) return price.toString();
+  return num.toLocaleString('ko-KR');
+};

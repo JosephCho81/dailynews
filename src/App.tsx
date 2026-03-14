@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchStructuredCommodityReport, CommodityReportData, NewsItem } from './services/geminiService';
+import { fetchStructuredCommodityReport, CommodityReportData, NewsItem, formatPrice } from './services/geminiService';
 import { 
   Loader2, 
   RefreshCw, 
@@ -64,21 +64,9 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen bg-[#f4f7fa] font-sans overflow-hidden">
-      {/* Status Bar Placeholder */}
-      <div className="h-10 flex items-center justify-between px-6 text-[12px] font-bold text-slate-900">
-        <span>9:41</span>
-        <div className="flex items-center gap-1">
-          <div className="w-4 h-2 bg-slate-900 rounded-sm"></div>
-          <span>100%</span>
-        </div>
-      </div>
-
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between bg-white/50 backdrop-blur-sm">
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">오늘의 원자재 뉴스</h1>
-        <button className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
-          <Menu className="w-6 h-6" />
-        </button>
       </header>
 
       {/* Main Content Area */}
@@ -127,14 +115,14 @@ export default function App() {
               {/* Featured Price Cards Grid */}
               <div className="grid grid-cols-2 gap-4">
                 {/* LME Aluminum Card */}
-                <div className="bg-gradient-to-br from-[#1a365d] to-[#2d3748] rounded-[24px] p-5 text-white shadow-xl shadow-blue-900/10 relative overflow-hidden">
+                <div className="bg-gradient-to-br from-[#1e293b] to-[#334155] rounded-[24px] p-5 text-white shadow-xl shadow-slate-900/10 relative overflow-hidden">
                   <div className="absolute -top-2 -right-2 opacity-10">
                     <Globe className="w-16 h-16" />
                   </div>
                   <div className="space-y-1 relative z-10">
                     <h2 className="text-[10px] font-bold tracking-widest opacity-70 uppercase">LME ALUMINUM</h2>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black tracking-tight">${data.lmeAluminum?.current || '0.00'}</span>
+                      <span className="text-2xl font-black tracking-tight">${formatPrice(data.lmeAluminum?.current || '0')}</span>
                       <span className="text-[10px] font-bold opacity-50">USD</span>
                     </div>
                     <div className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold">
@@ -145,18 +133,18 @@ export default function App() {
                 </div>
 
                 {/* PPS Aluminum Card */}
-                <div className="bg-white rounded-[24px] p-5 text-slate-900 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
+                <div className="bg-gradient-to-br from-[#f8fafc] to-[#f1f5f9] rounded-[24px] p-5 text-slate-900 shadow-xl shadow-slate-200/50 border border-slate-200 relative overflow-hidden">
                   <div className="absolute -top-2 -right-2 opacity-5">
                     <Coins className="w-16 h-16" />
                   </div>
                   <div className="space-y-1 relative z-10">
                     <h2 className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">조달청 알루미늄</h2>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black tracking-tight text-slate-900">{data.ppsAluminum?.current || '0'}</span>
+                      <span className="text-2xl font-black tracking-tight text-slate-900">{formatPrice(data.ppsAluminum?.current || '0')}</span>
                       <span className="text-[10px] font-bold text-slate-400">원</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-emerald-600 text-[10px] font-bold">
+                      <div className="flex items-center gap-1 text-blue-600 text-[10px] font-bold">
                         <TrendingUp className="w-3 h-3" />
                         <span>{data.ppsAluminum?.changePercent || '0.00%'}</span>
                       </div>
