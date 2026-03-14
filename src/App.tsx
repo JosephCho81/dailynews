@@ -65,16 +65,32 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen bg-[#f4f7fa] font-sans overflow-hidden">
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between bg-white/50 backdrop-blur-sm">
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">오늘의 원자재 뉴스</h1>
+      <header className="px-6 py-8 flex flex-col items-center bg-white/50 backdrop-blur-sm relative">
         <button 
           onClick={() => loadData(true)}
           disabled={loading}
-          className="p-2 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+          className="absolute right-6 top-8 p-2 text-slate-400 hover:text-blue-600 transition-colors disabled:opacity-50"
           title="새로고침"
         >
           <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
         </button>
+
+        {/* Company CI Placeholder - Replace src with actual logo path */}
+        <div className="mb-4">
+          <img 
+            src="https://picsum.photos/seed/a1-logo/120/60" 
+            alt="Company CI" 
+            className="h-12 object-contain"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+
+        <div className="text-center space-y-1">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">오늘의 원자재 뉴스</h1>
+          <p className="text-[12px] font-bold text-slate-400 tracking-wider">
+            {new Date().toISOString().split('T')[0]}
+          </p>
+        </div>
       </header>
 
       {/* Main Content Area */}
