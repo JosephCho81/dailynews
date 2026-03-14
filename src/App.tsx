@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+// @ts-ignore
 import logo from './logo.png';
 import { fetchStructuredCommodityReport, CommodityReportData, NewsItem, formatPrice } from './services/geminiService';
 import { 
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-type Category = 'global' | 'nonFerrous' | 'aluminum' | 'scrap';
+type Category = 'raw_materials' | 'base_metals' | 'aluminum' | 'scrap';
 
 export default function App() {
   const [data, setData] = useState<CommodityReportData | null>(null);
@@ -52,8 +53,8 @@ export default function App() {
   }, []);
 
   const categories: { id: Category; label: string }[] = [
-    { id: 'global', label: '글로벌' },
-    { id: 'nonFerrous', label: '비철금속' },
+    { id: 'raw_materials', label: '원자재' },
+    { id: 'base_metals', label: '비철금속' },
     { id: 'aluminum', label: '알루미늄' },
     { id: 'scrap', label: '스크랩' },
   ];
@@ -79,11 +80,14 @@ export default function App() {
         {/* 회사 로고 (CI) */}
         <div className="mb-4">
           <img 
-            src={logo} 
+            src={logo || "/logo.png"} 
             alt="Company CI" 
             className="h-12 object-contain"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              // 로고가 정말 없을 때만 숨김
+              if (e.currentTarget.src.includes('logo.png')) {
+                e.currentTarget.style.display = 'none';
+              }
             }}
           />
         </div>

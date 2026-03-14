@@ -23,8 +23,8 @@ export interface CommodityReportData {
   lmeAluminum: PriceData;
   ppsAluminum: PriceData;
   news: {
-    global: NewsItem[];
-    nonFerrous: NewsItem[];
+    raw_materials: NewsItem[];
+    base_metals: NewsItem[];
     aluminum: NewsItem[];
     scrap: NewsItem[];
     [key: string]: NewsItem[];
@@ -40,37 +40,50 @@ const getAi = () => {
 };
 
 async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
-  // 정확도를 위해 더 강력한 모델인 gemini-3.1-pro-preview로 업그레이드합니다.
   const model = "gemini-3.1-pro-preview";
   const ai = getAi();
   
   const prompt = `
-    당신은 전 세계 원자재 시장을 실시간 모니터링하는 수석 분석가입니다. 
-    **현재 시점(2026년 3월 14일)** 기준, 지난 24시간 이내의 가장 긴급하고 정확한 뉴스만 수집하여 JSON으로 제공하세요.
+    [SYSTEM ROLE]
+    당신은 글로벌 원자재 및 금속 산업 전문 뉴스 큐레이터이자 데이터 검증을 수행하는 조사 분석가입니다.
+
+    [목표]
+    전 세계 주요 언론사, 경제지, 산업 전문지, 정부 기관 발표에서 "오늘 기준 주요 원자재 뉴스"를 수집하고 검증 후 요약합니다.
+
+    [검색 출처 (필수 포함)]
+    - 글로벌 통신사: Reuters, Bloomberg, CNBC, Financial Times, Wall Street Journal
+    - 산업 전문지: SNMNews(철강금속신문), FerroTimes, Light Metal Age, AgMetalMiner, Fastmarkets, S&P Global Commodity Insights, Metal Bulletin, Mining.com
+    - 정부 및 공공기관: USGS, IEA, World Steel Association, 각국 산업부/에너지부
+
+    [뉴스 시간 조건]
+    - 반드시 **"오늘(2026년 3월 14일) 또는 지난 24시간 내 기사"**만 사용하세요.
 
     [데이터 요청 - 실시간 정확도]
     1. LME 알루미늄: lme.com 공식 홈페이지의 'Official Prices'를 확인하여 3월 13일(금) 종가(Cash $3,519.50)를 정확히 반영하세요.
     2. 조달청 알루미늄: 
-       - **검색 키워드**: "조달청 원자재 판매가격 알루미늄 서구산"
-       - **출처**: 조달청(pps.go.kr) 비축물자 판매가격 공지사항.
-       - **데이터**: 가장 최신 날짜의 공고에서 **'알루미늄 (서구산)'**의 **'부가세 포함'** 가격을 찾아 반영하세요.
-       - **단위**: 원/ton.
-       - **부가세 정보**: 'vatInfo' 필드에 "부가세 포함"이라고 명시하세요.
+       - 검색 키워드: "조달청 원자재 판매가격 알루미늄 서구산"
+       - 데이터: 가장 최신 날짜의 공고에서 '알루미늄 (서구산)'의 '부가세 포함' 가격을 반영하세요. (단위: 원/ton)
+       - vatInfo: "부가세 포함" 명시.
 
-    [뉴스 수집 - 24시간 이내 실시간 뉴스]
-    - **수집 기간**: 반드시 **최근 24시간 이내 (2026년 3월 13일 ~ 14일)** 뉴스만 포함하세요.
-    - **핵심 키워드**: 호르무즈 해협 긴장(Strait of Hormuz), 미국-이란 갈등, 러시아 전쟁, 에너지 위기, 알루미늄 공급망 붕괴.
-    - **수량 보장**: **각 카테고리(global, nonFerrous, aluminum, scrap)별로 반드시 5개 이상의 기사를 포함하세요.**
-    - **중요: 링크 무결성 (404 에러 절대 금지)**: 
-      * **검색 도구(googleSearch)의 결과에서 제공하는 'link' 필드의 URL을 단 한 글자도 수정하지 말고 그대로 복사해서 사용하세요.**
-      * 절대로 URL 구조를 추측하거나 생성하지 마세요. (예: bloomberg.com/news/... 처럼 그럴듯하게 만들지 마세요)
-      * 검색 결과에 실제 기사 원본 링크가 없는 경우 해당 기사는 제외하세요.
-      * 클릭 시 바로 기사 본문이 나오는 유효한 링크만 연결하세요.
-    
+    [뉴스 카테고리 및 수집 규칙]
+    1. raw_materials: 철광석, 석탄, 코크스, 리튬, 니켈 원광, 희토류, 배터리 원자재 등
+    2. base_metals: 구리, 니켈, 아연, 납, 주석 등 비철금속
+    3. aluminum: 알루미늄 가격, 생산, 프리미엄, smelter, bauxite, alumina
+    4. scrap: 철스크랩, 알루미늄 스크랩, 비철 스크랩, 글로벌 스크랩 시장
+
+    - 각 카테고리별 최소 5개 기사 확보 (최대 10개)
+    - 어떤 카테고리도 빈 배열로 두지 말 것
+    - 동일 기사 중복 금지
+
+    [링크 무결성 및 품질 검증]
+    - URL이 실제 기사 페이지인지 확인 (광고/리다이렉트/로그인 필요 페이지 제외)
+    - 기사 제목과 본문 내용이 일치하는지 확인
+    - 접근 불가 링크(404) 제외
+    - **반드시 "검증된 원본 URL"만 사용하세요.**
+
     [지시사항]
     - 모든 텍스트는 한국어로 작성.
-    - 뉴스 요약은 현재의 지정학적 위기와 원자재 가격의 상관관계를 중심으로 1-2문장 작성.
-    - JSON 구조를 엄격히 준수하며, 어떤 카테고리도 빈 배열로 두지 마세요.
+    - JSON 구조를 엄격히 준수하세요.
   `;
 
   const config: any = {
@@ -104,13 +117,13 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
             current: { type: Type.STRING },
             change: { type: Type.STRING },
             changePercent: { type: Type.STRING },
-            vatInfo: { type: Type.STRING, description: "부가세 포함/별도 여부 (예: 부가세 별도, 부가세 포함)" }
+            vatInfo: { type: Type.STRING }
           }
         },
         news: {
           type: Type.OBJECT,
           properties: {
-            global: {
+            raw_materials: {
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
@@ -123,7 +136,7 @@ async function fetchFromGemini(retryCount = 0): Promise<CommodityReportData> {
                 }
               }
             },
-            nonFerrous: {
+            base_metals: {
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
